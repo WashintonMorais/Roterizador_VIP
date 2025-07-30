@@ -18,8 +18,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      # --- LINHA CORRIGIDA ---
       - name: Install dependencies
-        run: pip install pandas gspread # Adicione outras bibliotecas se necessário
+        run: pip install pandas gspread oauth2client requests
 
       - name: Create Google Credentials File
         run: echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
