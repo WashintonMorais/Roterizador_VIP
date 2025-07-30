@@ -1,0 +1,28 @@
+name: Roterizador VIPCommerce
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Executa uma vez por dia à meia-noite (horário de São Paulo)
+    - cron: '0 3 * * *'
+
+jobs:
+  run-roterizador:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas gspread # Adicione outras bibliotecas se necessário
+
+      - name: Create Google Credentials File
+        run: echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
+
+      - name: Run Roterizador script
+        run: python automacao_rotas.py
