@@ -1,8 +1,8 @@
 # logic/cep_scrapers.py
-
 import requests
 from bs4 import BeautifulSoup
 import re
+import time # <<< CORREÇÃO: Adicionada a importação que faltava
 from .logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,7 +13,7 @@ def scrape_qualocep(cep_limpo):
     Extrai dados de CEP, incluindo coordenadas, do site qualocep.com.
     """
     try:
-        # Pausa para respeitar os limites do site
+        # Pausa de 1 segundo para não sobrecarregar o site
         time.sleep(1)
         
         url = f"https://www.qualocep.com/busca-cep/{cep_limpo}/"
@@ -50,9 +50,6 @@ def scrape_qualocep(cep_limpo):
             logger.warning(f"Dados incompletos encontrados em qualocep.com para {cep_limpo}.")
             return None
 
-    except requests.RequestException as e:
-        logger.error(f"Falha ao aceder a qualocep.com para o CEP {cep_limpo}: {e}")
-        return None
     except Exception as e:
         logger.error(f"Erro inesperado ao processar a página de qualocep.com para {cep_limpo}: {e}")
         return None
