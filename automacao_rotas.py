@@ -58,7 +58,7 @@ def processar_cidade(planilha, tarefa):
 
     # 2. Extrair todos os CEPs da cidade
     ceps_da_cidade = get_ceps_from_city(estado, cidade)
-    if not ceps_da_cidade:
+    if not cps_da_cidade:
         logger.error(f"Não foram encontrados CEPs para a cidade '{cidade}' - '{estado}'. A pular empresa.")
         return False
 
@@ -72,6 +72,9 @@ def processar_cidade(planilha, tarefa):
         
         if lat_cep is not None:
             distancia = haversine(lat_partida, lon_partida, lat_cep, lon_cep)
+            
+            # --- MODIFICAÇÃO AQUI ---
+            # Adicionamos Latitude e Longitude ao dicionário de resultados
             resultados_individuais.append({
                 "Estado": estado,
                 "Cidade": cidade,
@@ -79,7 +82,9 @@ def processar_cidade(planilha, tarefa):
                 "Rua": rua,
                 "Raiz": cep[:5],
                 "CEP": cep,
-                "Distancia_km": round(distancia, 2)
+                "Distancia_km": round(distancia, 2),
+                "Latitude": lat_cep,   # <-- ADICIONADO
+                "Longitude": lon_cep   # <-- ADICIONADO
             })
         if (i + 1) % 100 == 0:
             logger.info(f"Processados {i + 1}/{total_ceps} CEPs...")
@@ -89,7 +94,11 @@ def processar_cidade(planilha, tarefa):
         return False
 
     df_detalhado = pd.DataFrame(resultados_individuais)
-    ordem_colunas_detalhada = ['Estado', 'Cidade', 'Bairro', 'Rua', 'Raiz', 'CEP', 'Distancia_km']
+    
+    # --- MODIFICAÇÃO AQUI ---
+    # Adicionamos as novas colunas à lista para garantir a ordem na planilha
+    ordem_colunas_detalhada = ['Estado', 'Cidade', 'Bairro', 'Rua', 'Raiz', 'CEP', 'Distancia_km', 'Latitude', 'Longitude']
+    
     df_detalhado = df_detalhado[ordem_colunas_detalhada]
     df_detalhado = df_detalhado.sort_values(by='Distancia_km', ascending=True)
 
