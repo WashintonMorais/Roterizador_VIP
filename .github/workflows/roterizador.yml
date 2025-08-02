@@ -1,26 +1,35 @@
 name: Roterizador VIPCommerce
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Permite iniciar manualmente pela interface do GitHub
   schedule:
-    # Executa uma vez por dia à meia-noite (horário de São Paulo)
+    # Executa todos os dias às 3h UTC (meia-noite no horário de Brasília)
     - cron: '0 3 * * *'
 
 jobs:
   run-roterizador:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+
+      # Passo para instalar o navegador Chrome
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # --- LINHA CORRIGIDA ---
+      # Passo de dependências atualizado para incluir Selenium
       - name: Install dependencies
-        run: pip install pandas gspread oauth2client requests beautifulsoup4 lxml
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager gspread "google-auth-oauthlib<1" "google-api-python-client<2" pandas requests beautifulsoup4 lxml
 
       - name: Create Google Credentials File
         run: echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
