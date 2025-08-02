@@ -58,7 +58,7 @@ def processar_cidade(planilha, tarefa):
 
     # 2. Extrair todos os CEPs da cidade
     ceps_da_cidade = get_ceps_from_city(estado, cidade)
-    if not ceps_da_cidade:
+    if not ceps_da_cidade:  
         logger.error(f"Não foram encontrados CEPs para a cidade '{cidade}' - '{estado}'. A pular empresa.")
         return False
 
