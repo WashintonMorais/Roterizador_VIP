@@ -8,4 +8,5 @@ __pycache__/
 # Arquivos de ambiente (se você usar)
 .env
 venv/
-.venv/
+.venv/brazil-latest.osm.pbf
+brazil-latest.osm.pbf
