@@ -12,8 +12,11 @@ ABA_TAREFAS = "Ceps_Rotas"
 FICHEIRO_CREDENCIAL_JSON = "credentials.json"
 logger = get_logger(__name__)
 
-def _salvar_resultados(planilha, nome_base, df):
-    """Função auxiliar para criar/atualizar uma aba na planilha."""
+def _salvar_resultados(planilha, nome_base, df, cep_partida=None):
+    """
+    Função auxiliar para criar/atualizar uma aba na planilha.
+    Agora também guarda o CEP de partida na aba detalhada.
+    """
     try:
         try:
             planilha.del_worksheet(planilha.worksheet(nome_base))
@@ -21,12 +24,20 @@ def _salvar_resultados(planilha, nome_base, df):
         except gspread.WorksheetNotFound:
             pass # Ótimo, a aba não existia
 
-        nova_aba = planilha.add_worksheet(title=nome_base, rows=len(df) + 1, cols=len(df.columns))
-        # Prepara os dados, substituindo None por strings vazias para o gspread
+        # Adiciona linhas e colunas extras para metadados se necessário
+        nova_aba = planilha.add_worksheet(title=nome_base, rows=len(df) + 2, cols=len(df.columns) + 2)
+        
+        # LÓGICA ATUALIZADA: Guardar o CEP de Partida na célula L1
+        if cep_partida and nome_base.endswith(" - Detalhado"):
+            nova_aba.update_acell('L1', cep_partida)
+            nova_aba.update_acell('K1', 'CEP_PARTIDA:')
+            logger.info(f"CEP de Partida ({cep_partida}) guardado na célula L1 da aba '{nome_base}'.")
+
+        # Prepara os dados para escrever na planilha a partir da célula A1
         df_para_escrever = df.fillna('')
         dados_para_escrever = [df_para_escrever.columns.values.tolist()] + df_para_escrever.values.tolist()
         
-        nova_aba.update(dados_para_escrever, value_input_option='USER_ENTERED')
+        nova_aba.update('A1', dados_para_escrever, value_input_option='USER_ENTERED')
         logger.info(f"Resultados guardados com sucesso na nova aba: '{nome_base}'")
         return True
     except Exception as e:
@@ -35,8 +46,8 @@ def _salvar_resultados(planilha, nome_base, df):
 
 def processar_cidade(planilha, tarefa):
     """
-    Executa a nova lógica completa: extrai todos os CEPs de uma cidade,
-    calcula as distâncias e salva tanto o relatório detalhado quanto o resumido.
+    Executa a lógica completa: extrai todos os CEPs de uma cidade,
+    calcula as distâncias e salva os relatórios.
     """
     empresa = tarefa.get('Empresa')
     cep_partida_str = str(tarefa.get('CEP de Partida', '')).strip().zfill(8)
@@ -58,7 +69,7 @@ def processar_cidade(planilha, tarefa):
 
     # 2. Extrair todos os CEPs da cidade
     ceps_da_cidade = get_ceps_from_city(estado, cidade)
-    if not ceps_da_cidade:  
+    if not ceps_da_cidade:
         logger.error(f"Não foram encontrados CEPs para a cidade '{cidade}' - '{estado}'. A pular empresa.")
         return False
 
@@ -72,9 +83,6 @@ def processar_cidade(planilha, tarefa):
         
         if lat_cep is not None:
             distancia = haversine(lat_partida, lon_partida, lat_cep, lon_cep)
-            
-            # --- MODIFICAÇÃO AQUI ---
-            # Adicionamos Latitude e Longitude ao dicionário de resultados
             resultados_individuais.append({
                 "Estado": estado,
                 "Cidade": cidade,
@@ -83,8 +91,8 @@ def processar_cidade(planilha, tarefa):
                 "Raiz": cep[:5],
                 "CEP": cep,
                 "Distancia_km": round(distancia, 2),
-                "Latitude": lat_cep,   # <-- ADICIONADO
-                "Longitude": lon_cep   # <-- ADICIONADO
+                "Latitude": lat_cep,
+                "Longitude": lon_cep
             })
         if (i + 1) % 100 == 0:
             logger.info(f"Processados {i + 1}/{total_ceps} CEPs...")
@@ -94,17 +102,14 @@ def processar_cidade(planilha, tarefa):
         return False
 
     df_detalhado = pd.DataFrame(resultados_individuais)
-    
-    # --- MODIFICAÇÃO AQUI ---
-    # Adicionamos as novas colunas à lista para garantir a ordem na planilha
     ordem_colunas_detalhada = ['Estado', 'Cidade', 'Bairro', 'Rua', 'Raiz', 'CEP', 'Distancia_km', 'Latitude', 'Longitude']
-    
     df_detalhado = df_detalhado[ordem_colunas_detalhada]
     df_detalhado = df_detalhado.sort_values(by='Distancia_km', ascending=True)
 
     # 4. Salvar o relatório detalhado
     nome_aba_detalhada = f"{empresa} - Detalhado"
-    if not _salvar_resultados(planilha, nome_aba_detalhada, df_detalhado):
+    # LÓGICA ATUALIZADA: Passamos o cep_partida_str para ser guardado na aba
+    if not _salvar_resultados(planilha, nome_aba_detalhada, df_detalhado, cep_partida_str):
         return False
 
     # 5. Agrupar por raiz e calcular a média
@@ -120,7 +125,7 @@ def processar_cidade(planilha, tarefa):
     
     # 6. Salvar o relatório resumido
     nome_aba_resumo = f"{empresa} - Resumo"
-    if not _salvar_resultados(planilha, nome_aba_resumo, df_agregado):
+    if not _salvar_resultados(planilha, nome_aba_resumo, df_agregado): # Não precisa de passar o CEP para a aba de resumo
         return False
 
     return True

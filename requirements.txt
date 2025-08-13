@@ -1,2 +1,11 @@
 Flask
 requests
+osmnx
+gspread
+google-auth-oauthlib
+pandas
+requests
+beautifulsoup4
+lxml
+selenium
+webdriver-manager
